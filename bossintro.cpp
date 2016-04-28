@@ -240,22 +240,23 @@ int main(int argc, char *argv[])
 			//printf("%i, %i, %i, %i\n", stars[i].x, stars[i].y, stars[i].r, stars[i].x_speed);
 			animateStar(screen, stars[i], 0, 0, info->current_w, info->current_h);
 		}
-		SDL_Flip(screen);
-		FPS_Fn();
 
-	    if(aTick%10 == 0) pidx++;
-	    while(SDL_PollEvent(&event)){
-	        switch(event.type){
-	        	case SDL_KEYDOWN:
-	        		bRun = 0;
-	        		break;
-			case SDL_QUIT:
-	                	bRun = 0;
-	                	break;
-			default:
-	                	break;
-	        }
-	    }
+		SDL_Flip(screen);
+		FPS_Fn(); //limit framerate
+
+		if(aTick%10 == 0) pidx++;
+		while(SDL_PollEvent(&event)){
+			switch(event.type){
+				case SDL_KEYDOWN:
+					bRun = 0;
+					break;
+				case SDL_QUIT:
+					bRun = 0;
+					break;
+				default:
+					break;
+			}
+		};
 	    
     };
 
