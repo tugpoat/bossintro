@@ -2,6 +2,9 @@
 #include <cmath>
 #include <time.h>
 #include <stdio.h>
+#include <string>
+#include <cstring>
+#include <SDL/SDL_ttf.h>
 #include <SDL/SDL_mixer.h>
 #include <SDL/SDL_gfxPrimitives.h>
 
@@ -142,6 +145,10 @@ void animateStar(SDL_Surface *screen, struct tstar &star,
 	filledCircleRGBA(screen, star.x, star.y, star.r, 255, 255, 255, 255); 
 }
 
+void animateText(SDL_Surface *screen, char* text, unsigned int pos) {
+
+}
+
 int main(int argc, char *argv[])
 {
 	srand(time(NULL));
@@ -150,28 +157,43 @@ int main(int argc, char *argv[])
 	int pidx = 0 , aTick = 0;
 	tstar stars[NUM_STARS];
 
+	//Probably should make this a commandline option but whatever I dont care this is a toy
+	std::string text = "PAT MAN";
+	unsigned int text_pos = 0; //This should be an iterator which we define and use later on, or maybe not even exist at all who knows
 
-	SDL_Surface *screen;	
+
+	SDL_Surface *screen;
+	SDL_Rect stageRect;
+	SDL_Rect nameRect;
+	TTF_Font *font;
 	Mix_Music *music;
+
 
 	atexit(SDL_Quit);
 
 	SDL_WM_SetCaption("MM2 Bossintro", NULL);
 
-#ifdef WINDOWED
-	screen = SDL_SetVideoMode( 640 , 480 , 32 , SDL_DOUBLEBUF);
-#else
+//#ifdef WINDOWED
+//screen = SDL_SetVideoMode( 640 , 480 , 32 , SDL_DOUBLEBUF);
+//#else
 	screen = SDL_SetVideoMode( 1920 , 1080 , 32 , SDL_DOUBLEBUF|SDL_HWSURFACE|SDL_ANYFORMAT|SDL_FULLSCREEN);
-#endif
+//#endif
 	
 	const SDL_VideoInfo* info = SDL_GetVideoInfo();
 	printf("info: %d %d\n", info->current_w, info->current_h);
 
 	//Initialize SDL_mixer
 	if( Mix_OpenAudio( 22050, MIX_DEFAULT_FORMAT, 2, 4096 ) == -1 )
-	    return 1;
+	{
+		printf("failed to open sdl_mixer\n");
+		return 1;
+	}
 
-	SDL_Rect stageRect;
+	if (TTF_Init() < 0) {
+		printf("failed to init ttf\n");
+		return 1;
+	    // Handle error...
+	}
 
 	stageRect.w = info->current_w;
 	stageRect.h = info->current_h / 3.5;
@@ -181,6 +203,7 @@ int main(int argc, char *argv[])
 	SDL_Surface *stage = CreateSurface(0, stageRect.w, stageRect.h, screen);
 	buildStage(*stage, stageRect.w, stageRect.h);
 
+	
 
 	/*
 		Set up stars
@@ -226,9 +249,19 @@ int main(int argc, char *argv[])
 	}
 
 
-	music = Mix_LoadMUS("mm2.ogg");
+	music = Mix_LoadMUS("./mm2.ogg");
 	if (music == NULL) return false;
+
+	font = TTF_OpenFont("ArcadeClassic.ttf", info->current_h / 32);
 	
+	int text_w, text_h;
+	TTF_SizeText(font, text.c_str(), &text_w, &text_h);
+
+	nameRect.w = text_w;
+	nameRect.h = text_h;
+	nameRect.x = info->current_w / 2 - nameRect.w / 2;
+	nameRect.y = stageRect.y + stageRect.h - ((stageRect.h / 50) * 16);
+
 	FPS_Initial( );
 	Mix_PlayMusic(music, 1);
 
@@ -241,10 +274,31 @@ int main(int argc, char *argv[])
 			animateStar(screen, stars[i], 0, 0, info->current_w, info->current_h);
 		}
 
+
+		if(aTick%10 == 0) {
+			pidx++;
+
+			//make sure we start drawing the text at the right time
+			if (pidx > 180) {
+				SDL_Surface *name;
+				SDL_Color c = {255,255,255,255};
+				name = TTF_RenderText_Solid(font, text.substr(0,text_pos).c_str(), c);
+				SDL_BlitSurface(name, NULL, screen, &nameRect);
+
+				//TODO: handle timing based on length of text
+				if (pidx%20 == 0) {
+					if (text_pos < sizeof(text))
+						text_pos++;
+				}
+			}
+		}
+
+
+
+
 		SDL_Flip(screen);
 		FPS_Fn(); //limit framerate
 
-		if(aTick%10 == 0) pidx++;
 		while(SDL_PollEvent(&event)){
 			switch(event.type){
 				case SDL_KEYDOWN:
